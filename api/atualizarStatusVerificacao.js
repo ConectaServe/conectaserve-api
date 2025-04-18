@@ -1,4 +1,3 @@
-// pages/api/atualizarStatusVerificacao.js
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -11,12 +10,12 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
-  // ✅ Cabeçalhos CORS permitidos
+  // ✅ CORS headers para permitir qualquer origem (ou troque "*" por seu domínio exato)
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  // ✅ Trata requisições de preflight (OPTIONS)
+  // ✅ Tratamento para requisições preflight (CORS)
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
