@@ -20,6 +20,7 @@ export default async function handler(req, res) {
         verificacoes.push({
           id: doc.id,
           nome: data.nome || "",
+          cpf: data.cpf || "", // ✅ agora inclui o CPF
           cidade: data.cidade || "",
           foto: data.foto || "",
           cnh: data.cnh || "",
