@@ -1,5 +1,5 @@
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_KEY_JSON);
 
@@ -14,15 +14,13 @@ export default async function handler(req, res) {
 
   if (req.method === "PATCH") {
     try {
-      // Atualiza na verificação
-      await db.collection("verificacoes").doc(id).update({ status });
-
-      // Atualiza também no usuário
-      await db.collection("usuarios").doc(id).update({ statusVerificacao: status });
+      await db.collection("usuarios").doc(id).update({
+        statusVerificacao: status
+      });
 
       res.status(200).json({ sucesso: true });
-    } catch (e) {
-      res.status(500).json({ erro: e.message });
+    } catch (err) {
+      res.status(500).json({ erro: err.message });
     }
   } else {
     res.status(405).json({ erro: "Método não permitido" });
