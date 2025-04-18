@@ -20,11 +20,11 @@ export default async function handler(req, res) {
         verificacoes.push({
           id: doc.id,
           nome: data.nome || "",
-          cpf: data.cpf || "", // ✅ agora inclui o CPF
+          cpf: data.cpf || "",
           cidade: data.cidade || "",
-          foto: data.foto || "",
-          cnh: data.cnh || "",
-          status: data.statusVerificacao || "em_analise"
+          foto: (data.foto || "").trim(),
+          cnh: (data.cnh || "").trim(),
+          status: (data.statusVerificacao || "em_analise").replace(/"/g, '').trim().toLowerCase()
         });
       }
     });
