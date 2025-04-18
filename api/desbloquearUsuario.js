@@ -1,4 +1,3 @@
-// 🔒 Arquivo: desbloquearUsuario.js
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -15,7 +14,7 @@ export default async function handler(req, res) {
 
   if (req.method === "PATCH") {
     try {
-      await db.collection("usuarios").doc(id).update({ status: "ativo" });
+      await db.collection("usuarios").doc(id).update({ bloqueado: false });
       return res.status(200).json({ sucesso: true });
     } catch (error) {
       return res.status(500).json({ erro: error.message });
