@@ -10,6 +10,17 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
+  // Habilita CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // Trata pré-flight
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+
   const { id } = req.query;
 
   if (req.method === "DELETE") {
