@@ -1,5 +1,5 @@
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_KEY_JSON);
 
@@ -10,29 +10,21 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "PATCH, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") return res.status(200).end();
-
-  if (req.method !== "PATCH") {
-    return res.status(405).json({ erro: "Método não permitido" });
-  }
-
   const { id, status } = req.query;
 
-  if (!id || !status) {
-    return res.status(400).json({ erro: "ID e status são obrigatórios" });
-  }
+  if (req.method === "PATCH") {
+    try {
+      // Atualiza na verificação
+      await db.collection("verificacoes").doc(id).update({ status });
 
-  try {
-    await db.collection("verificacoes").doc(id).update({
-      status: status
-    });
+      // Atualiza também no usuário
+      await db.collection("usuarios").doc(id).update({ statusVerificacao: status });
 
-    res.status(200).json({ sucesso: true });
-  } catch (err) {
-    res.status(500).json({ erro: err.message });
+      res.status(200).json({ sucesso: true });
+    } catch (e) {
+      res.status(500).json({ erro: e.message });
+    }
+  } else {
+    res.status(405).json({ erro: "Método não permitido" });
   }
 }
