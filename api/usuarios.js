@@ -1,4 +1,3 @@
-// 🔧 editarUsuario.js (API Vercel para editar nome, cpf, email, tipo)
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
