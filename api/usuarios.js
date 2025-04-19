@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         cpf: data.cpf || "",
         email: data.email || "",
         tipo: data.tipo || "",
-        bloqueado: data.status === "bloqueado"
+        bloqueado: data.bloqueado === true // <-- aqui está a correção
       };
     });
 
