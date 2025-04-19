@@ -24,7 +24,8 @@ export default async function handler(req, res) {
         cpf: data.cpf || "",
         email: data.email || "",
         tipo: data.tipo || "",
-        bloqueado: data.bloqueado === true // ✅ Atualização correta aqui
+        bloqueado: data.bloqueado === true,
+        moedas: data.moedas || 0 // ✅ Apenas adiciona esse campo para o dashboard
       };
     });
 
