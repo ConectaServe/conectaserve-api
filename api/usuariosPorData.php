@@ -2,7 +2,7 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
-require __DIR__ . '/firebase.php'; // Garante que Firebase esteja inicializado
+require __DIR__ . '/firebase.php';
 
 use Google\Cloud\Firestore\FirestoreClient;
 
@@ -11,51 +11,62 @@ $db = new FirestoreClient([
 ]);
 
 $periodo = $_GET['periodo'] ?? 'dia';
-$dataFiltro = $_GET['data'] ?? date('Y-m-d');
 
-function agruparUsuarios($docs, $periodo) {
-  $agrupado = [];
+function gerarChaveData($timestamp, $periodo) {
+  $dt = new DateTime();
+  $dt->setTimestamp($timestamp);
 
-  foreach ($docs as $doc) {
-    $data = $doc->data();
-    if (!isset($data['criadoEm'])) continue;
-
-    $timestamp = $data['criadoEm']->get()->getTimestamp();
-    $dt = new DateTime();
-    $dt->setTimestamp($timestamp);
-
-    switch ($periodo) {
-      case 'semana':
-        $chave = $dt->format('o-\WW'); // Ex: 2024-W15
-        break;
-      case 'mes':
-        $chave = $dt->format('Y-m');   // Ex: 2024-04
-        break;
-      case 'ano':
-        $chave = $dt->format('Y');     // Ex: 2024
-        break;
-      default:
-        $chave = $dt->format('Y-m-d'); // Ex: 2024-04-21
-    }
-
-    if (!isset($agrupado[$chave])) $agrupado[$chave] = 0;
-    $agrupado[$chave]++;
+  switch ($periodo) {
+    case 'semana':
+      return $dt->format('o-\WW'); // Ex: 2024-W15
+    case 'mes':
+      return $dt->format('Y-m');   // Ex: 2024-04
+    case 'ano':
+      return $dt->format('Y');     // Ex: 2024
+    default:
+      return $dt->format('Y-m-d'); // Ex: 2024-04-21
   }
-
-  ksort($agrupado);
-  return $agrupado;
 }
 
 try {
   $usuariosRef = $db->collection('usuarios');
   $snapshot = $usuariosRef->documents();
 
-  $dadosAgrupados = agruparUsuarios($snapshot, $periodo);
+  $agrupado = [];
+
+  foreach ($snapshot as $doc) {
+    $data = $doc->data();
+    if (!isset($data['createdAt']) || !isset($data['tipo'])) continue;
+
+    $timestamp = $data['createdAt']->get()->getTimestamp();
+    $chave = gerarChaveData($timestamp, $periodo);
+    $tipo = $data['tipo'];
+
+    if (!isset($agrupado[$chave])) {
+      $agrupado[$chave] = ['clientes' => 0, 'prestadores' => 0];
+    }
+
+    if ($tipo === 'cliente') $agrupado[$chave]['clientes']++;
+    if ($tipo === 'prestador') $agrupado[$chave]['prestadores']++;
+  }
+
+  ksort($agrupado);
+
+  $labels = [];
+  $clientes = [];
+  $prestadores = [];
+
+  foreach ($agrupado as $data => $quantidades) {
+    $labels[] = $data;
+    $clientes[] = $quantidades['clientes'];
+    $prestadores[] = $quantidades['prestadores'];
+  }
 
   echo json_encode([
     'sucesso' => true,
-    'labels' => array_keys($dadosAgrupados),
-    'valores' => array_values($dadosAgrupados)
+    'labels' => array_map(fn($d) => ['data' => $d, 'clientes' => 0, 'prestadores' => 0], $labels),
+    'clientes' => $clientes,
+    'prestadores' => $prestadores
   ]);
 } catch (Exception $e) {
   http_response_code(500);
