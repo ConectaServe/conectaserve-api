@@ -1,159 +1,39 @@
-console.log("✅ scripts.js carregado");
+// pages/api/editarUsuario.js
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
-window.onload = function () {
-  loadPage("dashboard.php");
-};
+const serviceAccount = JSON.parse(process.env.FIREBASE_KEY_JSON);
 
-function loadPage(page) {
-  fetch(page)
-    .then(res => res.text())
-    .then(html => {
-      const content = document.getElementById("main-content");
-      content.innerHTML = html;
-
-      setTimeout(() => {
-        if (page === "pedidos.php") ativarExcluirPedido();
-        if (page === "verificacoes.php") ativarStatusVerificacao();
-        if (page === "usuarios.php") ativarUsuarios();
-      }, 100);
-    })
-    .catch(err => console.error("❌ Erro ao carregar página:", err));
-}
-
-function ativarExcluirPedido() {
-  const botoes = document.querySelectorAll("[data-excluir-id]");
-  botoes.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = btn.getAttribute("data-excluir-id");
-      if (confirm("Tem certeza que deseja excluir?")) {
-        fetch(`https://conectaserve-api.vercel.app/api/excluirPedido?id=${id}`, { method: "DELETE" })
-          .then(res => res.json())
-          .then(data => {
-            if (data.sucesso) {
-              alert("Pedido excluído!");
-              loadPage("pedidos.php");
-            }
-          });
-      }
-    });
+if (!getApps().length) {
+  initializeApp({
+    credential: cert(serviceAccount),
   });
 }
 
-function ativarStatusVerificacao() {
-  const aprovarBtns = document.querySelectorAll("[data-id].btn-aprovar");
-  const reprovarBtns = document.querySelectorAll("[data-id].btn-reprovar");
+const db = getFirestore();
 
-  aprovarBtns.forEach(btn => {
-    btn.addEventListener("click", () => atualizarStatus(btn.getAttribute("data-id"), "aprovado"));
-  });
+export default async function handler(req, res) {
+  if (req.method !== "PATCH") {
+    return res.status(405).json({ sucesso: false, erro: "Método não permitido" });
+  }
 
-  reprovarBtns.forEach(btn => {
-    btn.addEventListener("click", () => atualizarStatus(btn.getAttribute("data-id"), "recusado"));
-  });
-}
+  const { id } = req.query;
+  const { nome, cpf, email, tipo } = req.body;
 
-function atualizarStatus(id, novoStatus) {
-  fetch(`https://conectaserve-api.vercel.app/api/atualizarStatusVerificacao?id=${id}&status=${novoStatus}`, {
-    method: "PATCH"
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (data.sucesso) {
-        alert("Status atualizado com sucesso!");
-        loadPage("verificacoes.php");
-      } else {
-        alert("Erro ao atualizar status.");
-      }
-    })
-    .catch(err => {
-      console.error("Erro ao atualizar status:", err);
-      alert("Erro na requisição.");
+  if (!id || !nome || !cpf || !email || !tipo) {
+    return res.status(400).json({ sucesso: false, erro: "Dados incompletos" });
+  }
+
+  try {
+    await db.collection("usuarios").doc(id).update({
+      nome,
+      cpf,
+      email,
+      tipo,
     });
-}
 
-function ativarUsuarios() {
-  document.querySelectorAll("[data-excluir-id]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = btn.getAttribute("data-excluir-id");
-      if (confirm("Tem certeza que deseja excluir este usuário?")) {
-        fetch(`https://conectaserve-api.vercel.app/api/excluirUsuario?id=${id}`, { method: "DELETE" })
-          .then(res => res.json())
-          .then(data => {
-            if (data.sucesso) {
-              alert("Usuário excluído com sucesso!");
-              loadPage("usuarios.php");
-            } else {
-              alert("Erro ao excluir.");
-            }
-          });
-      }
-    });
-  });
-
-  document.querySelectorAll("[data-bloquear-id]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = btn.getAttribute("data-bloquear-id");
-      if (confirm("Deseja bloquear este usuário?")) {
-        fetch(`https://conectaserve-api.vercel.app/api/bloquearUsuario?id=${id}`, { method: "PATCH" })
-          .then(res => res.json())
-          .then(data => {
-            if (data.sucesso) {
-              alert("Usuário bloqueado!");
-              loadPage("usuarios.php");
-            } else {
-              alert("Erro ao bloquear.");
-            }
-          });
-      }
-    });
-  });
-
-  document.querySelectorAll("[data-desbloquear-id]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = btn.getAttribute("data-desbloquear-id");
-      if (confirm("Deseja desbloquear este usuário?")) {
-        fetch(`https://conectaserve-api.vercel.app/api/desbloquearUsuario?id=${id}`, { method: "PATCH" })
-          .then(res => res.json())
-          .then(data => {
-            if (data.sucesso) {
-              alert("Usuário desbloqueado!");
-              loadPage("usuarios.php");
-            } else {
-              alert("Erro ao desbloquear.");
-            }
-          });
-      }
-    });
-  });
-
-  document.querySelectorAll("[data-editar-id]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = btn.getAttribute("data-editar-id");
-      const linha = btn.closest("tr");
-      const nome = linha.children[0].innerText;
-      const cpf = linha.children[1].innerText;
-      const email = linha.children[2].innerText;
-      const tipo = linha.children[3].innerText;
-
-      const novoNome = prompt("Editar nome:", nome);
-      const novoCpf = prompt("Editar CPF:", cpf);
-      const novoEmail = prompt("Editar Email:", email);
-      const novoTipo = prompt("Editar Tipo (cliente/prestador):", tipo);
-
-      if (novoNome && novoCpf && novoEmail && novoTipo) {
-        fetch(`https://conectaserve-api.vercel.app/api/editarUsuario?id=${id}&nome=${encodeURIComponent(novoNome)}&cpf=${encodeURIComponent(novoCpf)}&email=${encodeURIComponent(novoEmail)}&tipo=${encodeURIComponent(novoTipo)}`, {
-          method: "PATCH"
-        })
-          .then(res => res.json())
-          .then(data => {
-            if (data.sucesso) {
-              alert("Usuário atualizado!");
-              loadPage("usuarios.php");
-            } else {
-              alert("Erro ao editar.");
-            }
-          });
-      }
-    });
-  });
+    res.status(200).json({ sucesso: true });
+  } catch (e) {
+    res.status(500).json({ sucesso: false, erro: e.message });
+  }
 }
