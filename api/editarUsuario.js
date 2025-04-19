@@ -15,13 +15,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: "Método não permitido" });
   }
 
-  const { id, nome, cpf, email, tipo } = req.body;
-
-  if (!id || !nome || !cpf || !email || !tipo) {
-    return res.status(400).json({ erro: "Campos obrigatórios ausentes." });
-  }
-
   try {
+    const { id, nome, cpf, email, tipo } = req.body;
+
+    if (!id || !nome || !cpf || !email || !tipo) {
+      return res.status(400).json({ erro: "Dados incompletos" });
+    }
+
     await db.collection("usuarios").doc(id).update({
       nome,
       cpf,
