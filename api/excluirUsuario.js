@@ -1,4 +1,4 @@
-// /api/excluirUsuario.js
+// pages/api/excluirUsuario.js
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
@@ -14,12 +14,10 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
-  // 🔓 CORS headers
-  res.setHeader("Access-Control-Allow-Origin", "*"); // ou seu domínio fixo
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // ✅ Trata o preflight
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -29,6 +27,7 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
+  console.log("🧾 ID recebido para exclusão:", id);
 
   if (!id) {
     return res.status(400).json({ sucesso: false, erro: "ID não informado" });
@@ -36,8 +35,10 @@ export default async function handler(req, res) {
 
   try {
     await db.collection("usuarios").doc(id).delete();
+    console.log("✅ Usuário excluído com sucesso.");
     return res.status(200).json({ sucesso: true });
   } catch (error) {
+    console.error("❌ Erro ao excluir usuário:", error);
     return res.status(500).json({ sucesso: false, erro: error.message });
   }
 }
