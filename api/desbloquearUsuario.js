@@ -17,13 +17,17 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (!id) {
-    return res.status(400).json({ erro: "ID não fornecido" });
+    return res.status(400).json({ erro: "ID do usuário é obrigatório" });
   }
 
   try {
-    await db.collection("usuarios").doc(id).update({ bloqueado: false });
+    await db.collection("usuarios").doc(id).update({
+      bloqueado: false, // ✅ campo correto
+    });
+
     return res.status(200).json({ sucesso: true });
-  } catch (e) {
-    return res.status(500).json({ erro: e.message });
+  } catch (error) {
+    console.error("Erro ao desbloquear usuário:", error);
+    return res.status(500).json({ erro: "Erro interno ao desbloquear usuário" });
   }
 }
