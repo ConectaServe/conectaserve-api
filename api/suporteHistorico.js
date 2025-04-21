@@ -1,4 +1,5 @@
-// /api/suporteHistorico.js
+// /api/suporteHistorico.js (Vercel)
+
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -23,10 +24,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: "Método não permitido" });
   }
 
-  const { userId } = req.query;
+  const userId = req.query.id;
 
   if (!userId) {
-    return res.status(400).json({ erro: "userId não informado" });
+    return res.status(400).json({ erro: "ID do usuário ausente" });
   }
 
   try {
@@ -36,9 +37,9 @@ export default async function handler(req, res) {
       .orderBy("timestamp", "desc")
       .get();
 
-    const historico = snapshot.docs.map((doc) => ({
-      ...doc.data(),
+    const historico = snapshot.docs.map(doc => ({
       id: doc.id,
+      ...doc.data()
     }));
 
     return res.status(200).json(historico);
