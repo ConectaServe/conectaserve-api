@@ -1,39 +1,37 @@
-// /api/responderSuporte.js
-...
-const { id, userId, resposta, status } = req.body;
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
-if ((!id && !userId) || !resposta || !resposta.trim()) {
-  return res.status(400).json({ erro: "ID ou resposta ausente ou inválida" });
+const serviceAccount = JSON.parse(process.env.FIREBASE_KEY_JSON);
+
+if (!getApps().length) {
+  initializeApp({ credential: cert(serviceAccount) });
 }
 
-try {
-  let docRef;
+const db = getFirestore();
 
-  if (id) {
-    docRef = db.collection("suporte").doc(id);
-  } else {
-    // pega o último documento do userId
-    const snapshot = await db
-      .collection("suporte")
-      .where("userId", "==", userId)
-      .orderBy("timestamp", "desc")
-      .limit(1)
-      .get();
+export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-    if (snapshot.empty) {
-      return res.status(404).json({ erro: "Mensagem não encontrada para esse usuário." });
-    }
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ erro: "Método não permitido" });
 
-    docRef = snapshot.docs[0].ref;
+  const { id, resposta, status } = req.body;
+
+  if (!id || !resposta || !resposta.trim()) {
+    return res.status(400).json({ erro: "ID ou resposta ausente ou inválida" });
   }
 
-  await docRef.update({
-    resposta,
-    status: status || "aberto",
-    respondidoEm: new Date(),
-  });
+  try {
+    await db.collection("suporte").doc(id).update({
+      resposta,
+      respondidoEm: new Date(),
+      ...(status && { status })
+    });
 
-  return res.status(200).json({ sucesso: true });
-} catch (e) {
-  return res.status(500).json({ erro: e.message });
+    return res.status(200).json({ sucesso: true });
+  } catch (error) {
+    return res.status(500).json({ erro: error.message });
+  }
 }
