@@ -1,39 +1,68 @@
-// pages/api/cadastrosPorData.js
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+<?php
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json");
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_KEY_JSON);
+require __DIR__ . '/firebase.php';
 
-if (!getApps().length) {
-  initializeApp({ credential: cert(serviceAccount) });
+use Google\Cloud\Firestore\FirestoreClient;
+
+$db = new FirestoreClient([
+  'projectId' => 'appconectaservegeral'
+]);
+
+$periodo = $_GET['periodo'] ?? 'dia';
+
+function gerarChaveData($timestamp, $periodo) {
+  $dt = new DateTime();
+  $dt->setTimestamp($timestamp);
+
+  switch ($periodo) {
+    case 'semana':
+      return $dt->format('o-\WW'); // Ex: 2024-W15
+    case 'mes':
+      return $dt->format('Y-m');   // Ex: 2024-04
+    case 'ano':
+      return $dt->format('Y');     // Ex: 2024
+    default:
+      return $dt->format('Y-m-d'); // Ex: 2024-04-21
+  }
 }
 
-const db = getFirestore();
+try {
+  $usuariosRef = $db->collection('usuarios');
+  $snapshot = $usuariosRef->documents();
 
-export default async function handler(req, res) {
-  try {
-    const snapshot = await db.collection("usuarios").get();
-    const dadosAgrupados = {};
+  $agrupado = [];
 
-    snapshot.forEach(doc => {
-      const { tipo, createdAt } = doc.data();
-      if (createdAt && tipo) {
-        const dataFormatada = new Date(createdAt._seconds * 1000).toISOString().split("T")[0];
-        if (!dadosAgrupados[dataFormatada]) {
-          dadosAgrupados[dataFormatada] = { clientes: 0, prestadores: 0 };
-        }
-        if (tipo === "cliente") dadosAgrupados[dataFormatada].clientes++;
-        if (tipo === "prestador") dadosAgrupados[dataFormatada].prestadores++;
-      }
-    });
+  foreach ($snapshot as $doc) {
+    $data = $doc->data();
+    if (!isset($data['createdAt']) || !isset($data['tipo'])) continue;
 
-    const resultado = Object.entries(dadosAgrupados).map(([data, valores]) => ({
-      data,
-      ...valores
-    }));
+    $timestamp = $data['createdAt']->get()->getTimestamp();
+    $chave = gerarChaveData($timestamp, $periodo);
+    $tipo = $data['tipo'];
 
-    res.status(200).json(resultado);
-  } catch (e) {
-    res.status(500).json({ erro: e.message });
+    if (!isset($agrupado[$chave])) {
+      $agrupado[$chave] = ['clientes' => 0, 'prestadores' => 0];
+    }
+
+    if ($tipo === 'cliente') $agrupado[$chave]['clientes']++;
+    if ($tipo === 'prestador') $agrupado[$chave]['prestadores']++;
   }
+
+  ksort($agrupado);
+
+  $resultado = [];
+  foreach ($agrupado as $data => $quantidades) {
+    $resultado[] = [
+      'data' => $data,
+      'clientes' => $quantidades['clientes'],
+      'prestadores' => $quantidades['prestadores']
+    ];
+  }
+
+  echo json_encode($resultado);
+} catch (Exception $e) {
+  http_response_code(500);
+  echo json_encode(['erro' => 'Erro ao buscar usuários: ' . $e->getMessage()]);
 }
