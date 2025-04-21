@@ -30,12 +30,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const snapshot = await db.collection("suporte")
+    const snapshot = await db
+      .collection("suporte")
       .where("userId", "==", userId)
       .orderBy("timestamp", "desc")
       .get();
 
-    const historico = snapshot.docs.map(doc => ({
+    const historico = snapshot.docs.map((doc) => ({
       ...doc.data(),
       id: doc.id,
     }));
