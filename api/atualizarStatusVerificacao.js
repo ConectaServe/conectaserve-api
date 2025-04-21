@@ -24,9 +24,16 @@ export default async function handler(req, res) {
 
   if (req.method === "PATCH") {
     try {
+      // Atualiza o status no documento do usuário
       await db.collection("usuarios").doc(id).update({
         statusVerificacao: status
       });
+
+      // Atualiza também a subcoleção "verificacoes"
+      await db.collection("verificacoes").doc(id).update({
+        status: status
+      });
+
       return res.status(200).json({ sucesso: true });
     } catch (error) {
       return res.status(500).json({ erro: error.message });
