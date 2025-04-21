@@ -1,3 +1,4 @@
+// suporteHistorico.js (API Vercel)
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -17,13 +18,13 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "GET") return res.status(405).json({ erro: "Método não permitido" });
 
-  try {
-    const snapshot = await db.collection("suporte").orderBy("timestamp", "desc").get();
-    const mensagens = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+  const { id } = req.query;
+  if (!id) return res.status(400).json({ erro: "ID do usuário ausente" });
 
+  try {
+    const q = db.collection("suporte").where("userId", "==", id).orderBy("timestamp", "asc");
+    const snapshot = await q.get();
+    const mensagens = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return res.status(200).json(mensagens);
   } catch (error) {
     return res.status(500).json({ erro: error.message });
