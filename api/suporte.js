@@ -25,11 +25,31 @@ export default async function handler(req, res) {
   }
 
   try {
-    const snapshot = await db.collection("suporte").orderBy("timestamp", "desc").get();
-    const mensagens = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const snapshot = await db.collection("suporte")
+      .orderBy("timestamp", "desc")
+      .get();
+
+    const mensagens = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        let email = "";
+
+        // Tenta buscar o email do usuário
+        if (data.userId) {
+          const userSnap = await db.collection("usuarios").doc(data.userId).get();
+          if (userSnap.exists) {
+            email = userSnap.data().email || "";
+          }
+        }
+
+        return {
+          id: doc.id,
+          ...data,
+          email,
+          timestamp: data.timestamp ? data.timestamp.toDate() : null,
+        };
+      })
+    );
 
     return res.status(200).json(mensagens);
   } catch (error) {
