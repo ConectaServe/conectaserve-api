@@ -1,7 +1,7 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_KEY_JSON); // variável de ambiente com sua chave
+const serviceAccount = JSON.parse(process.env.FIREBASE_KEY_JSON);
 
 if (!getApps().length) {
   initializeApp({
@@ -50,7 +50,6 @@ export default async function handler(req, res) {
       if (tipo === 'prestador') agrupado[chave].prestadores++;
     });
 
-    // Organizar os dados para o gráfico
     const resultado = Object.entries(agrupado)
       .sort(([a], [b]) => new Date(a) - new Date(b))
       .map(([data, valores]) => ({
