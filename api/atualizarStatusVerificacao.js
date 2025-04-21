@@ -22,6 +22,10 @@ export default async function handler(req, res) {
 
   const { id, status } = req.query;
 
+  if (!id || !status) {
+    return res.status(400).json({ erro: "ID e status são obrigatórios" });
+  }
+
   if (req.method === "PATCH") {
     try {
       // Atualiza o status no documento do usuário
@@ -29,10 +33,15 @@ export default async function handler(req, res) {
         statusVerificacao: status
       });
 
-      // Atualiza também a subcoleção "verificacoes"
-      await db.collection("verificacoes").doc(id).update({
-        status: status
-      });
+      // Atualiza também o status na coleção verificacoes (se existir)
+      const verDoc = db.collection("verificacoes").doc(id);
+      const verSnap = await verDoc.get();
+
+      if (verSnap.exists) {
+        await verDoc.update({
+          status: status
+        });
+      }
 
       return res.status(200).json({ sucesso: true });
     } catch (error) {
