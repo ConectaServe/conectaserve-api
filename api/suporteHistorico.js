@@ -1,5 +1,3 @@
-// /api/suporteHistorico.js
-
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -27,7 +25,7 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (!id) {
-    return res.status(400).json({ erro: "ID do usuário não fornecido." });
+    return res.status(400).json({ erro: "ID do usuário ausente." });
   }
 
   try {
@@ -37,12 +35,12 @@ export default async function handler(req, res) {
       .orderBy("timestamp", "asc")
       .get();
 
-    const historico = snapshot.docs.map((doc) => ({
+    const mensagens = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
     }));
 
-    return res.status(200).json(historico);
+    return res.status(200).json(mensagens);
   } catch (error) {
     return res.status(500).json({ erro: error.message });
   }
