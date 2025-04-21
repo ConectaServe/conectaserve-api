@@ -30,20 +30,26 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
-  const { nome, cpf, email, tipo } = req.body;
+  const { nome, cpf, email, tipo, moedas } = req.body;
 
-  if (!id || !nome || !cpf || !email || !tipo) {
-    return res.status(400).json({ sucesso: false, erro: "Dados incompletos" });
+  if (!id) {
+    return res.status(400).json({ sucesso: false, erro: "ID não informado" });
+  }
+
+  // 🔁 Monta objeto de atualização dinamicamente
+  const updateData = {};
+  if (nome !== undefined) updateData.nome = nome;
+  if (cpf !== undefined) updateData.cpf = cpf;
+  if (email !== undefined) updateData.email = email;
+  if (tipo !== undefined) updateData.tipo = tipo;
+  if (moedas !== undefined) updateData.moedas = moedas;
+
+  if (Object.keys(updateData).length === 0) {
+    return res.status(400).json({ sucesso: false, erro: "Nenhum dado enviado para atualização." });
   }
 
   try {
-    await db.collection("usuarios").doc(id).update({
-      nome,
-      cpf,
-      email,
-      tipo
-    });
-
+    await db.collection("usuarios").doc(id).update(updateData);
     return res.status(200).json({ sucesso: true });
   } catch (error) {
     return res.status(500).json({ sucesso: false, erro: error.message });
