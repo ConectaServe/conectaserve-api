@@ -26,8 +26,8 @@ export default async function handler(req, res) {
 
   const { id, resposta } = req.body;
 
-  if (!id || !resposta) {
-    return res.status(400).json({ erro: "ID ou resposta ausente" });
+  if (!id || !resposta || !resposta.trim()) {
+    return res.status(400).json({ erro: "ID ou resposta ausente ou inválida" });
   }
 
   try {
