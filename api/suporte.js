@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const snapshot = await db.collection("suporte").orderBy("criadoEm", "desc").get();
+    const snapshot = await db.collection("suporte").orderBy("timestamp", "desc").get();
     const mensagens = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
