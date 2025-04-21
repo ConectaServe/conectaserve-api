@@ -25,7 +25,8 @@ export default async function handler(req, res) {
         email: data.email || "",
         tipo: data.tipo || "",
         bloqueado: data.bloqueado === true,
-        moedas: data.moedas || 0 // ✅ Apenas adiciona esse campo para o dashboard
+        moedas: data.moedas || 0,
+        statusVerificacao: data.statusVerificacao || "analise" // ✅ Adicionado aqui
       };
     });
 
