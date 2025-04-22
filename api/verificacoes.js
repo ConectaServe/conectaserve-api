@@ -16,7 +16,16 @@ export default async function handler(req, res) {
 
     snapshot.forEach(doc => {
       const data = doc.data();
+
       if (data.statusVerificacao) {
+        const status = (data.statusVerificacao || "").toLowerCase().trim();
+
+        // Aceita 'analise' ou 'em_analise' como equivalentes
+        const statusPadronizado =
+          status === "analise" || status === "em_analise"
+            ? "em_analise"
+            : status;
+
         verificacoes.push({
           id: doc.id,
           nome: data.nome || "",
@@ -24,7 +33,7 @@ export default async function handler(req, res) {
           cidade: data.cidade || "",
           foto: (data.foto || "").trim(),
           cnh: (data.cnh || "").trim(),
-          status: (data.statusVerificacao || "em_analise").replace(/"/g, '').trim().toLowerCase()
+          status: statusPadronizado
         });
       }
     });
