@@ -10,14 +10,17 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
+  // ✅ CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
+  // ✅ Resposta imediata para requisições preflight
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
+  // ❌ Bloqueia métodos diferentes de GET
   if (req.method !== "GET") {
     return res.status(405).json({ erro: "Método não permitido" });
   }
@@ -29,6 +32,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ✅ Pega a subcoleção de mensagens do documento suporte/{id}
     const snapshot = await db
       .collection("suporte")
       .doc(id)
@@ -43,6 +47,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json(mensagens);
   } catch (error) {
+    console.error("❌ Erro no suporteHistorico.js:", error);
     return res.status(500).json({ erro: error.message });
   }
 }
