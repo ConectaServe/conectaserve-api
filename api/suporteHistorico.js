@@ -10,29 +10,31 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
-  // ✅ CORS headers
+  // ✅ CORS headers obrigatórios (antes de qualquer retorno)
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  // ✅ Resposta imediata para requisições preflight
+  // ✅ Suporte a preflight request (CORS)
   if (req.method === "OPTIONS") {
-    return res.status(200).end();
+    res.status(200).end();
+    return;
   }
 
-  // ❌ Bloqueia métodos diferentes de GET
+  // ❌ Só aceita método GET
   if (req.method !== "GET") {
-    return res.status(405).json({ erro: "Método não permitido" });
+    res.status(405).json({ erro: "Método não permitido" });
+    return;
   }
 
   const { id } = req.query;
 
   if (!id) {
-    return res.status(400).json({ erro: "ID ausente." });
+    res.status(400).json({ erro: "ID ausente." });
+    return;
   }
 
   try {
-    // ✅ Pega a subcoleção de mensagens do documento suporte/{id}
     const snapshot = await db
       .collection("suporte")
       .doc(id)
@@ -45,9 +47,9 @@ export default async function handler(req, res) {
       ...doc.data(),
     }));
 
-    return res.status(200).json(mensagens);
+    res.status(200).json(mensagens);
   } catch (error) {
     console.error("❌ Erro no suporteHistorico.js:", error);
-    return res.status(500).json({ erro: error.message });
+    res.status(500).json({ erro: error.message });
   }
 }
