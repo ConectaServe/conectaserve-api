@@ -10,33 +10,37 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
+  // ✅ CORS Headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
+  // ✅ Suporte para requisições preflight (CORS)
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
+  // ❌ Bloqueia métodos diferentes de POST
   if (req.method !== "POST") {
     return res.status(405).json({ erro: "Método não permitido" });
   }
 
   const { id, resposta, status } = req.body;
 
+  // ❌ Validação dos dados
   if (!id || !resposta || !resposta.trim()) {
     return res.status(400).json({ erro: "ID ou resposta ausente ou inválida" });
   }
 
   try {
-    // ✅ Adiciona a mensagem na subcoleção "mensagens"
+    // ✅ Adiciona a resposta na subcoleção "mensagens"
     await db.collection("suporte").doc(id).collection("mensagens").add({
       resposta,
       tipo: "admin",
       timestamp: new Date()
     });
 
-    // ✅ Atualiza o documento principal com status e última resposta
+    // ✅ Atualiza o documento principal com resposta e status
     await db.collection("suporte").doc(id).set({
       resposta,
       status: status || "aberto",
@@ -46,6 +50,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ sucesso: true });
   } catch (error) {
+    console.error("❌ Erro no responderSuporte.js:", error);
     return res.status(500).json({ erro: error.message });
   }
 }
