@@ -29,14 +29,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    // adiciona a resposta ao histórico se quiser manter isso
+    // ✅ Adiciona a mensagem na subcoleção "mensagens"
     await db.collection("suporte").doc(id).collection("mensagens").add({
       resposta,
       tipo: "admin",
       timestamp: new Date()
     });
 
-    // atualiza o documento principal
+    // ✅ Atualiza o documento principal com status e última resposta
     await db.collection("suporte").doc(id).set({
       resposta,
       status: status || "aberto",
