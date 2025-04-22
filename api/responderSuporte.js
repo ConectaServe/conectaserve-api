@@ -10,37 +10,34 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
-  // ✅ CORS Headers
+  // ✅ CORS headers obrigatórios para Vercel aceitar
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  // ✅ Suporte para requisições preflight (CORS)
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  // ❌ Bloqueia métodos diferentes de POST
   if (req.method !== "POST") {
-    return res.status(405).json({ erro: "Método não permitido" });
+    res.status(405).json({ erro: "Método não permitido" });
+    return;
   }
 
   const { id, resposta, status } = req.body;
 
-  // ❌ Validação dos dados
   if (!id || !resposta || !resposta.trim()) {
-    return res.status(400).json({ erro: "ID ou resposta ausente ou inválida" });
+    res.status(400).json({ erro: "ID ou resposta ausente ou inválida" });
+    return;
   }
 
   try {
-    // ✅ Adiciona a resposta na subcoleção "mensagens"
     await db.collection("suporte").doc(id).collection("mensagens").add({
       resposta,
       tipo: "admin",
       timestamp: new Date()
     });
 
-    // ✅ Atualiza o documento principal com resposta e status
     await db.collection("suporte").doc(id).set({
       resposta,
       status: status || "aberto",
@@ -48,9 +45,9 @@ export default async function handler(req, res) {
       respondidoEm: new Date()
     }, { merge: true });
 
-    return res.status(200).json({ sucesso: true });
+    res.status(200).json({ sucesso: true });
   } catch (error) {
-    console.error("❌ Erro no responderSuporte.js:", error);
-    return res.status(500).json({ erro: error.message });
+    console.error("❌ Erro:", error);
+    res.status(500).json({ erro: error.message });
   }
 }
