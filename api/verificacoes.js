@@ -20,7 +20,7 @@ export default async function handler(req, res) {
       if (data.statusVerificacao) {
         const status = (data.statusVerificacao || "").toLowerCase().trim();
 
-        // Aceita 'analise' ou 'em_analise' como equivalentes
+        // ✅ Aceita tanto 'analise' quanto 'em_analise'
         const statusPadronizado =
           status === "analise" || status === "em_analise"
             ? "em_analise"
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
           cidade: data.cidade || "",
           foto: (data.foto || "").trim(),
           cnh: (data.cnh || "").trim(),
-          status: statusPadronizado
+          status: statusPadronizado,
         });
       }
     });
