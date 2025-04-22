@@ -29,17 +29,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    // adiciona a nova resposta à subcoleção 'mensagens'
+    // Salvar resposta no histórico
     await db.collection("suporte").doc(userId).collection("mensagens").add({
       resposta,
       tipo: "admin",
       timestamp: new Date()
     });
 
-    // atualiza o status e última resposta
+    // Atualizar status e última resposta
     await db.collection("suporte").doc(userId).set({
       resposta,
       status: status || "aberto",
+      encerrado: status === "encerrado",
       respondidoEm: new Date()
     }, { merge: true });
 
