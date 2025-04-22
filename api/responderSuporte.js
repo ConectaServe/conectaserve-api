@@ -22,22 +22,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: "Método não permitido" });
   }
 
-  const { userId, resposta, status } = req.body;
+  const { id, resposta, status } = req.body;
 
-  if (!userId || !resposta || !resposta.trim()) {
-    return res.status(400).json({ erro: "userId ou resposta ausente ou inválida" });
+  if (!id || !resposta || !resposta.trim()) {
+    return res.status(400).json({ erro: "ID ou resposta ausente ou inválida" });
   }
 
   try {
-    // Salvar resposta no histórico
-    await db.collection("suporte").doc(userId).collection("mensagens").add({
+    // adiciona a resposta ao histórico se quiser manter isso
+    await db.collection("suporte").doc(id).collection("mensagens").add({
       resposta,
       tipo: "admin",
       timestamp: new Date()
     });
 
-    // Atualizar status e última resposta
-    await db.collection("suporte").doc(userId).set({
+    // atualiza o documento principal
+    await db.collection("suporte").doc(id).set({
       resposta,
       status: status || "aberto",
       encerrado: status === "encerrado",
