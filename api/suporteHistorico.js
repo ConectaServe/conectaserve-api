@@ -25,13 +25,14 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (!id) {
-    return res.status(400).json({ erro: "ID do usuário ausente." });
+    return res.status(400).json({ erro: "ID do suporte ausente." });
   }
 
   try {
     const snapshot = await db
       .collection("suporte")
-      .where("userId", "==", id)
+      .doc(id)
+      .collection("mensagens")
       .orderBy("timestamp", "asc")
       .get();
 
