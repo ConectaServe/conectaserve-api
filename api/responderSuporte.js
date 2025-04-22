@@ -22,25 +22,26 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: "Método não permitido" });
   }
 
-  const { id, resposta, status } = req.body;
+  const { userId, resposta, status } = req.body;
 
-  if (!id || !resposta || !resposta.trim()) {
-    return res.status(400).json({ erro: "ID ou resposta ausente ou inválida" });
+  if (!userId || !resposta || !resposta.trim()) {
+    return res.status(400).json({ erro: "userId ou resposta ausente ou inválida" });
   }
 
   try {
-    const docRef = db.collection("suporte").doc(id);
-    const docSnapshot = await docRef.get();
-    
-    if (!docSnapshot.exists) {
-      return res.status(404).json({ erro: "Mensagem não encontrada" });
-    }
+    // adiciona a nova resposta à subcoleção 'mensagens'
+    await db.collection("suporte").doc(userId).collection("mensagens").add({
+      resposta,
+      tipo: "admin",
+      timestamp: new Date()
+    });
 
-    await docRef.update({
+    // atualiza o status e última resposta
+    await db.collection("suporte").doc(userId).set({
       resposta,
       status: status || "aberto",
       respondidoEm: new Date()
-    });
+    }, { merge: true });
 
     return res.status(200).json({ sucesso: true });
   } catch (error) {
