@@ -26,24 +26,27 @@ export default async function handler(req, res) {
     return res.status(400).json({ erro: "ID e status são obrigatórios" });
   }
 
+  // Padroniza o status (remove espaços e letras maiúsculas)
+  const statusFormatado = status.toLowerCase().trim();
+
   if (req.method === "PATCH") {
     try {
       // Atualiza o status no documento do usuário
       await db.collection("usuarios").doc(id).update({
-        statusVerificacao: status
+        statusVerificacao: statusFormatado
       });
 
-      // Atualiza também o status na coleção verificacoes (se existir)
+      // Atualiza também o status na coleção verificacoes (se ela existir)
       const verDoc = db.collection("verificacoes").doc(id);
       const verSnap = await verDoc.get();
 
       if (verSnap.exists) {
         await verDoc.update({
-          status: status
+          status: statusFormatado
         });
       }
 
-      return res.status(200).json({ sucesso: true });
+      return res.status(200).json({ sucesso: true, statusAtualizado: statusFormatado });
     } catch (error) {
       return res.status(500).json({ erro: error.message });
     }
