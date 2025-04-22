@@ -1,5 +1,5 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_KEY_JSON);
 
@@ -10,7 +10,6 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
-  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -19,21 +18,21 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // GET = listar mensagens
+  // ✅ GET: listar mensagens da coleção principal
   if (req.method === "GET") {
     try {
       const snapshot = await db.collection("suporte").orderBy("timestamp", "desc").get();
-      const lista = snapshot.docs.map(doc => ({
+      const mensagens = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
-      return res.status(200).json(lista);
-    } catch (e) {
-      return res.status(500).json({ erro: e.message });
+      return res.status(200).json(mensagens);
+    } catch (error) {
+      return res.status(500).json({ erro: error.message });
     }
   }
 
-  // POST = responder / encerrar / reabrir
+  // ✅ POST: responder, encerrar ou reabrir
   if (req.method === "POST") {
     const { id, resposta, status } = req.body;
 
@@ -42,19 +41,21 @@ export default async function handler(req, res) {
     }
 
     try {
-      // adiciona na subcoleção mensagens
-      await db.collection("suporte").doc(id).collection("mensagens").add({
+      const suporteRef = db.collection("suporte").doc(id);
+
+      // Salva resposta na subcoleção mensagens
+      await suporteRef.collection("mensagens").add({
         resposta,
         tipo: "admin",
-        timestamp: new Date()
+        timestamp: Timestamp.now(),
       });
 
-      // atualiza status e dados principais
-      await db.collection("suporte").doc(id).set({
+      // Atualiza documento principal com status e resposta
+      await suporteRef.set({
         resposta,
         status: status || "aberto",
         encerrado: status === "encerrado",
-        respondidoEm: new Date()
+        respondidoEm: Timestamp.now(),
       }, { merge: true });
 
       return res.status(200).json({ sucesso: true });
@@ -63,6 +64,5 @@ export default async function handler(req, res) {
     }
   }
 
-  // Se método não for aceito
   return res.status(405).json({ erro: "Método não permitido" });
 }
