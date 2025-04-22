@@ -1,5 +1,5 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_KEY_JSON);
 
@@ -10,6 +10,7 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
+  // ✅ CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -18,21 +19,21 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // ✅ GET: listar mensagens da coleção principal
+  // ✅ GET → Histórico geral (usado no painel para listar todos os tickets)
   if (req.method === "GET") {
     try {
       const snapshot = await db.collection("suporte").orderBy("timestamp", "desc").get();
-      const mensagens = snapshot.docs.map(doc => ({
+      const lista = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data(),
+        ...doc.data()
       }));
-      return res.status(200).json(mensagens);
+      return res.status(200).json(lista);
     } catch (error) {
-      return res.status(500).json({ erro: error.message });
+      return res.status(500).json({ erro: "Erro ao buscar mensagens", detalhe: error.message });
     }
   }
 
-  // ✅ POST: responder, encerrar ou reabrir
+  // ✅ POST → Responder, encerrar ou reabrir
   if (req.method === "POST") {
     const { id, resposta, status } = req.body;
 
@@ -41,22 +42,25 @@ export default async function handler(req, res) {
     }
 
     try {
-      const suporteRef = db.collection("suporte").doc(id);
+      const ref = db.collection("suporte").doc(id);
 
-      // Salva resposta na subcoleção mensagens
-      await suporteRef.collection("mensagens").add({
+      // Adiciona resposta na subcoleção 'mensagens'
+      await ref.collection("mensagens").add({
         resposta,
         tipo: "admin",
-        timestamp: Timestamp.now(),
+        timestamp: new Date(),
       });
 
-      // Atualiza documento principal com status e resposta
-      await suporteRef.set({
+      // Atualiza o documento principal
+      const encerrado = status === "encerrado";
+      const novoStatus = encerrado ? "encerrado" : "aberto";
+
+      await ref.update({
         resposta,
-        status: status || "aberto",
-        encerrado: status === "encerrado",
-        respondidoEm: Timestamp.now(),
-      }, { merge: true });
+        status: novoStatus,
+        encerrado,
+        respondidoEm: new Date(),
+      });
 
       return res.status(200).json({ sucesso: true });
     } catch (error) {
@@ -64,5 +68,6 @@ export default async function handler(req, res) {
     }
   }
 
+  // ❌ Se método inválido
   return res.status(405).json({ erro: "Método não permitido" });
 }
