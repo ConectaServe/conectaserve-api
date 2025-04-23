@@ -31,7 +31,6 @@ export default async function handler(req, res) {
     };
 
     const snapshot = await db.collection('usuarios').get();
-
     const agrupado = {};
 
     snapshot.forEach(doc => {
@@ -39,9 +38,25 @@ export default async function handler(req, res) {
       const tipo = data.tipo;
       const createdAt = data.createdAt;
 
-      if (!tipo || !createdAt || !createdAt._seconds) return;
+      if (!tipo || !createdAt) return;
 
-      const chave = gerarChaveData(createdAt._seconds, periodo);
+      let segundos;
+
+      if (createdAt._seconds) {
+        // Firebase Timestamp
+        segundos = createdAt._seconds;
+      } else if (typeof createdAt === 'string') {
+        // String ISO (ex: 2025-04-23T01:55:00Z)
+        segundos = Math.floor(new Date(createdAt).getTime() / 1000);
+      } else if (createdAt instanceof Date) {
+        // Date objeto JavaScript
+        segundos = Math.floor(createdAt.getTime() / 1000);
+      } else {
+        return;
+      }
+
+      const chave = gerarChaveData(segundos, periodo);
+
       if (!agrupado[chave]) {
         agrupado[chave] = { clientes: 0, prestadores: 0 };
       }
