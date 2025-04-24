@@ -1,4 +1,3 @@
-
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -28,17 +27,23 @@ export default async function handler(req, res) {
 
         let novaMensagem = false;
 
-        if (data.status === "encerrado" && data.respondidoEm) {
-          const mensagensSnap = await db
-            .collection("suporte")
-            .doc(docId)
-            .collection("mensagens")
-            .where("timestamp", ">", data.respondidoEm)
-            .get(); // Removido o where("tipo", "==", "usuario")
+        // 🔁 Verifica se existe mensagem de usuário mais recente que respondidoEm (ou qualquer uma se não tiver respondidoEm)
+        const mensagensRef = db.collection("suporte").doc(docId).collection("mensagens");
+        let mensagensSnap;
 
-          if (!mensagensSnap.empty) {
-            novaMensagem = true;
-          }
+        if (data.respondidoEm) {
+          mensagensSnap = await mensagensRef
+            .where("timestamp", ">", data.respondidoEm)
+            .where("tipo", "==", "usuario")
+            .get();
+        } else {
+          mensagensSnap = await mensagensRef
+            .where("tipo", "==", "usuario")
+            .get();
+        }
+
+        if (!mensagensSnap.empty) {
+          novaMensagem = true;
         }
 
         lista.push({
