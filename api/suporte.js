@@ -11,11 +11,12 @@ const db = getFirestore();
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") return res.status(200).end();
 
+  // GET – listar suportes
   if (req.method === "GET") {
     try {
       const snapshot = await db.collection("suporte").orderBy("timestamp", "desc").get();
@@ -26,7 +27,6 @@ export default async function handler(req, res) {
         const docId = docSnap.id;
 
         let novaMensagem = false;
-
         const mensagensSnap = await db
           .collection("suporte")
           .doc(docId)
@@ -55,6 +55,7 @@ export default async function handler(req, res) {
     }
   }
 
+  // POST – responder ou puxar histórico
   if (req.method === "POST") {
     const { tipo, id, resposta, status } = req.body;
 
@@ -97,12 +98,39 @@ export default async function handler(req, res) {
         status: status || "aberto",
         encerrado: status === "encerrado",
         respondidoEm: new Date(),
-        novaMensagem: false, // zera o alerta no painel
+        novaMensagem: false,
       });
 
       return res.status(200).json({ sucesso: true });
     } catch (error) {
       return res.status(500).json({ erro: error.message });
+    }
+  }
+
+  // DELETE – excluir conversa completa
+  if (req.method === "DELETE") {
+    const { id } = req.query;
+
+    if (!id) return res.status(400).json({ erro: "ID da conversa ausente." });
+
+    try {
+      const ref = db.collection("suporte").doc(id);
+
+      // Deleta todas as mensagens da subcoleção
+      const mensagensSnap = await ref.collection("mensagens").get();
+      const batch = db.batch();
+      mensagensSnap.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+
+      // Deleta o documento principal
+      await ref.delete();
+
+      return res.status(200).json({ sucesso: true });
+    } catch (error) {
+      return res.status(500).json({ erro: "Erro ao excluir conversa", detalhe: error.message });
     }
   }
 
