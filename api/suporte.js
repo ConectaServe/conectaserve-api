@@ -10,55 +10,32 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
+  // ✅ CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") return res.status(200).end();
 
+  // ✅ GET → Lista geral
   if (req.method === "GET") {
     try {
       const snapshot = await db.collection("suporte").orderBy("timestamp", "desc").get();
-      const lista = [];
-
-      for (const docSnap of snapshot.docs) {
-        const data = docSnap.data();
-        const docId = docSnap.id;
-
-        let novaMensagem = false;
-
-        const mensagensRef = db.collection("suporte").doc(docId).collection("mensagens");
-
-        let mensagensSnap;
-
-        if (data.respondidoEm) {
-          mensagensSnap = await mensagensRef
-            .where("timestamp", ">", data.respondidoEm)
-            .get();
-        } else {
-          mensagensSnap = await mensagensRef.limit(1).get();
-        }
-
-        if (!mensagensSnap.empty) {
-          novaMensagem = true;
-        }
-
-        lista.push({
-          id: docId,
-          ...data,
-          novaMensagem,
-        });
-      }
-
+      const lista = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
       return res.status(200).json(lista);
     } catch (error) {
       return res.status(500).json({ erro: "Erro ao buscar mensagens", detalhe: error.message });
     }
   }
 
+  // ✅ POST → Histórico ou ações (responder, encerrar, reabrir)
   if (req.method === "POST") {
     const { tipo, id, resposta, status } = req.body;
 
+    // 🔁 Se for histórico
     if (tipo === "historico") {
       if (!id) return res.status(400).json({ erro: "ID ausente." });
       try {
@@ -80,6 +57,7 @@ export default async function handler(req, res) {
       }
     }
 
+    // ✉️ Responder, encerrar ou reabrir
     if (!id || !resposta || !resposta.trim()) {
       return res.status(400).json({ erro: "ID ou resposta ausente ou inválida" });
     }
@@ -87,6 +65,7 @@ export default async function handler(req, res) {
     try {
       const ref = db.collection("suporte").doc(id);
 
+      // Salva resposta na subcoleção
       await ref.collection("mensagens").add({
         resposta,
         tipo: "admin",
@@ -96,12 +75,12 @@ export default async function handler(req, res) {
       const encerrado = status === "encerrado";
       const novoStatus = encerrado ? "encerrado" : "aberto";
 
+      // Atualiza documento principal
       await ref.update({
         resposta,
         status: novoStatus,
         encerrado,
         respondidoEm: new Date(),
-        novaMensagem: false,
       });
 
       return res.status(200).json({ sucesso: true });
