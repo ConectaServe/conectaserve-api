@@ -10,12 +10,14 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
+  // ✅ CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") return res.status(200).end();
 
+  // ✅ GET → Lista geral
   if (req.method === "GET") {
     try {
       const snapshot = await db.collection("suporte").orderBy("timestamp", "desc").get();
@@ -29,10 +31,11 @@ export default async function handler(req, res) {
     }
   }
 
+  // ✅ POST → Histórico ou ações (responder, encerrar, reabrir)
   if (req.method === "POST") {
     const { tipo, id, resposta, status } = req.body;
 
-    // 🔁 Histórico de conversa
+    // 🔁 Se for histórico
     if (tipo === "historico") {
       if (!id) return res.status(400).json({ erro: "ID ausente." });
       try {
@@ -54,7 +57,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // ✉️ Enviar resposta / Reabrir / Encerrar
+    // ✉️ Responder, encerrar ou reabrir
     if (!id || !resposta || !resposta.trim()) {
       return res.status(400).json({ erro: "ID ou resposta ausente ou inválida" });
     }
@@ -72,13 +75,12 @@ export default async function handler(req, res) {
       const encerrado = status === "encerrado";
       const novoStatus = encerrado ? "encerrado" : "aberto";
 
-      // Atualiza documento principal, incluindo limpeza de novaMensagem
+      // Atualiza documento principal
       await ref.update({
         resposta,
         status: novoStatus,
         encerrado,
         respondidoEm: new Date(),
-        novaMensagem: false, // ✅ limpa alerta de nova mensagem
       });
 
       return res.status(200).json({ sucesso: true });
@@ -89,5 +91,3 @@ export default async function handler(req, res) {
 
   return res.status(405).json({ erro: "Método não permitido" });
 }
-
-
