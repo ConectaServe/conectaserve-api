@@ -34,8 +34,7 @@ export default async function handler(req, res) {
             .doc(docId)
             .collection("mensagens")
             .where("timestamp", ">", data.respondidoEm)
-            .where("tipo", "==", "usuario")
-            .get();
+            .get(); // Removido o where("tipo", "==", "usuario")
 
           if (!mensagensSnap.empty) {
             novaMensagem = true;
