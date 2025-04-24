@@ -27,6 +27,7 @@ export default async function handler(req, res) {
         const docId = docSnap.id;
 
         let novaMensagem = false;
+
         const mensagensSnap = await db
           .collection("suporte")
           .doc(docId)
@@ -38,6 +39,11 @@ export default async function handler(req, res) {
         if (!mensagensSnap.empty) {
           const ultimaMsg = mensagensSnap.docs[0].data();
           if (ultimaMsg.tipo !== "admin") {
+            novaMensagem = true;
+          }
+        } else {
+          // Nova conversa sem nenhuma resposta ainda
+          if (!data.encerrado && (data.status === "aberto" || !data.status)) {
             novaMensagem = true;
           }
         }
@@ -61,6 +67,7 @@ export default async function handler(req, res) {
 
     if (tipo === "historico") {
       if (!id) return res.status(400).json({ erro: "ID ausente." });
+
       try {
         const snapshot = await db
           .collection("suporte")
@@ -116,7 +123,6 @@ export default async function handler(req, res) {
     try {
       const ref = db.collection("suporte").doc(id);
 
-      // Deleta todas as mensagens da subcoleção
       const mensagensSnap = await ref.collection("mensagens").get();
       const batch = db.batch();
       mensagensSnap.forEach(doc => {
@@ -124,8 +130,6 @@ export default async function handler(req, res) {
       });
 
       await batch.commit();
-
-      // Deleta o documento principal
       await ref.delete();
 
       return res.status(200).json({ sucesso: true });
